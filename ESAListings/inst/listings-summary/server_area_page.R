@@ -23,11 +23,11 @@ server_area_page <- function(input, output, session) {
                 colors = palfx(seq(0, 80, 10)),
                 labels = c("- 0","- 10","- 20","- 30","- 40","- 50","- 60","- 70","> 80"))%>%
       addLegend(title = "Click on the center of a county<br>to see the species listed there.", position = "topright", colors = NULL, labels = NULL)%>%
-      addCircleMarkers(data = counties,
+      addCircles(data = counties,
                       lng = ~INTPTLON,
                       lat = ~INTPTLAT,
-                      radius = 5,
-                      color = "black",
+                      radius = ~sqrt(ALAND)/5,
+                      color = "red",
                       fillOpacity = 0,
                       stroke = FALSE,
                       popup = ~paste0(NAME," County<br>", count, " species<br>")
@@ -42,11 +42,11 @@ server_area_page <- function(input, output, session) {
                    select(GEOID)
     # print(spec_select$GEOID)
     leafletProxy("map")%>%
-    clearShapes()%>%
-    addCircles(data = filter(counties,GEOID %in% spec_select$GEOID),
+    clearMarkers()%>%
+    addCircleMarkers(data = filter(counties,GEOID %in% spec_select$GEOID),
                    lng = ~INTPTLON,
                    lat = ~INTPTLAT,
-                   radius = 7000,
+                   radius = 2,
                    color = "black",
                    fillOpacity = 1,
                    stroke = FALSE
@@ -54,9 +54,9 @@ server_area_page <- function(input, output, session) {
     }
   })
 
-  observeEvent(input$map_marker_click,{
-    click_lat <- input$map_marker_click[[3]]
-    click_lon <- input$map_marker_click[[4]]
+  observeEvent(input$map_shape_click,{
+    click_lat <- input$map_shape_click[[3]]
+    click_lon <- input$map_shape_click[[4]]
     gid <- counties$GEOID[counties$INTPTLAT == click_lat & counties$INTPTLON == click_lon]
     output$specTble <- DT::renderDataTable({
       filter(esacounties, GEOID == gid)%>%
@@ -100,9 +100,11 @@ server_area_page <- function(input, output, session) {
  observeEvent(event_data("plotly_click", source = "sp_dist"),{
   print(event_data("plotly_click", source = "sp_dist"))
   sp_count <- event_data("plotly_click", source = "sp_dist")$x[[1]]
+  temp <- group_by(TECP_domestic, Scientific_Name, Common_Name)%>%
+    summarize(Scientific = first(Scientific_Name))
   output$rngTble <- DT::renderDataTable({
-   filter(ungroup(species), count == sp_count)%>%
-   inner_join(TECP_domestic, by = c("Scientific" = "Scientific_Name"))%>%
+   filter(species, count == sp_count)%>%
+   inner_join(temp, by = c("Scientific"))%>%
    select(Scientific, Common_Name, count)%>%
    datatable(rownames = FALSE, selection = "none", colnames = c("Species", "Common Name", "Counties"))
 })})

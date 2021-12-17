@@ -1,6 +1,6 @@
 library(dplyr)
 library(DT)
-library(ESAListings)
+#library(ESAListings)
 library(highcharter)
 library(leaflet)
 library(plotly)
@@ -9,11 +9,12 @@ library(shinyBS)
 library(shinydashboard)
 library(viridis)
 
-data("county_topo")
-data("esacounties")
-data("TECP_date")
-data("TECP_domestic")
-data("county_attrib")
+load("data/county_topo.rda")
+load("data/esacounties.rda")
+#data("TECP_date")
+#data("TECP_domestic")
+load("data/TECP_domestic.rda")
+load("data/county_attrib.rda")
 
 #pull summaries of listings for boxes
 num_es <- nrow(filter(TECP_domestic, Federal_Listing_Status == "Endangered"))
@@ -29,7 +30,7 @@ counties<-group_by(esacounties, GEOID)%>%
 
 #counties$Species <- sapply(counties$GEOID, function(x,y) y$Scientific[y$GEOID == x], y = esacounties)
 
-counties <- dplyr::left_join(counties, select(county_attrib, GEOID, INTPTLAT, INTPTLON, NAME),by = "GEOID")
+counties <- dplyr::left_join(counties, select(county_attrib, GEOID, INTPTLAT, INTPTLON, NAME, ALAND),by = "GEOID")
 
 
 #create species dataset
@@ -59,7 +60,7 @@ regions <- as.data.frame(regions)
 regions$Lead_Region[regions$Lead_Region != "NMFS"] <- paste("Region", regions$Lead_Region[regions$Lead_Region != "NMFS"])
 
 #create 'years' dataframe
-years <- mutate(TECP_date,Year = substr(First_Listed,9,12))%>%
+years <- mutate(TECP_domestic, Year = substr(First_Listed,9,12))%>%
   select(Year, Federal_Listing_Status)%>%
   filter(Federal_Listing_Status == "Endangered"|Federal_Listing_Status == "Threatened")
 
